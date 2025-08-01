@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify
 
+@app.route('/')
+def index():
+    return "✅ Zoom Webhook サーバーは正常に動作しています。"
+
 app = Flask(__name__)
 latest_caller = {"number": None}
 
