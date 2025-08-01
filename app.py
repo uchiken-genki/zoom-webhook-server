@@ -10,21 +10,17 @@ ZOOM_WEBHOOK_SECRET = os.environ.get("ZOOM_WEBHOOK_SECRET", "your_webhook_secret
 
 latest_caller = {"number": None}
 
-@app.route('/webhook', methods=['GET', 'POST'])
+@app.route('/webhook', methods=['POST', 'GET'])
 def webhook():
-    # Zoom の GET 検証対応（オプションだけど実装しておくと便利）
     if request.method == 'GET':
-        challenge = request.args.get('challenge')
-        if challenge:
-            return jsonify({'challenge': challenge})
-        else:
-            return "OK", 200
+        # Zoom の GET リクエスト確認用
+        return jsonify({'message': 'Webhook endpoint is active'}), 200
 
-    # Zoom の plainToken 検証
     data = request.get_json()
-    if "plainToken" in data:
-        plain_token = data["plainToken"]
 
+    # Zoom の URL 検証用の plainToken 処理
+    if data and "plainToken" in data:
+        plain_token = data["plainToken"]
         hash_for_zoom = hmac.new(
             ZOOM_WEBHOOK_SECRET.encode(),
             msg=plain_token.encode(),
@@ -33,12 +29,13 @@ def webhook():
 
         encrypted_token = base64.b64encode(hash_for_zoom).decode()
 
+        # ✅ Zoom が期待する形式で返す
         return jsonify({
             "plainToken": plain_token,
             "encryptedToken": encrypted_token
-        })
+        }), 200
 
-    # Webhook 本体のイベント処理
+    # Webhook イベント処理
     try:
         event_type = data.get('event')
         if event_type == "phone.callee_ringing":
