@@ -6,26 +6,31 @@ import os
 
 app = Flask(__name__)
 
-# 環境変数からZoomのVerification Token（Webhook Secret Token）を取得
 ZOOM_WEBHOOK_SECRET = os.environ.get("ZOOM_WEBHOOK_SECRET", "your_webhook_secret")
 
 latest_caller = {"number": None}
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['GET', 'POST'])
 def webhook():
-    # Zoomの検証リクエストかどうかを判定
+    # Zoom の GET 検証対応（オプションだけど実装しておくと便利）
+    if request.method == 'GET':
+        challenge = request.args.get('challenge')
+        if challenge:
+            return jsonify({'challenge': challenge})
+        else:
+            return "OK", 200
+
+    # Zoom の plainToken 検証
     data = request.get_json()
-    
     if "plainToken" in data:
         plain_token = data["plainToken"]
-        
-        # HMAC-SHA256署名を生成
+
         hash_for_zoom = hmac.new(
             ZOOM_WEBHOOK_SECRET.encode(),
             msg=plain_token.encode(),
             digestmod=hashlib.sha256
         ).digest()
-        
+
         encrypted_token = base64.b64encode(hash_for_zoom).decode()
 
         return jsonify({
@@ -33,7 +38,7 @@ def webhook():
             "encryptedToken": encrypted_token
         })
 
-    # 通常のWebhookイベント処理
+    # Webhook 本体のイベント処理
     try:
         event_type = data.get('event')
         if event_type == "phone.callee_ringing":
