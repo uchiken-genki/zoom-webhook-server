@@ -4,6 +4,11 @@ import hmac
 import base64
 import os
 
+@app.before_request
+def log_request_info():
+    print("📥 Headers:", request.headers)
+    print("📥 Body:", request.get_data())
+
 app = Flask(__name__)
 
 ZOOM_WEBHOOK_SECRET = os.environ.get("ZOOM_WEBHOOK_SECRET", "your_webhook_secret")
